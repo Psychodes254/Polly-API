@@ -1,3 +1,4 @@
+import requests
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from datetime import datetime, timedelta, UTC
@@ -68,3 +69,24 @@ def get_current_user(
     if user is None:
         raise credentials_exception
     return user
+
+
+def register_user(username, password):
+    """
+    Registers a user by sending a POST request to the /register endpoint.
+    """
+    url = "http://localhost:8000/register"
+    user_data = {"username": username, "password": password}
+    
+    try:
+        response = requests.post(url, json=user_data)
+        response.raise_for_status()  # Raise an exception for bad status codes
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        # Handle connection errors, timeouts, etc.
+        print(f"An error occurred: {e}")
+        return None
+    except Exception as e:
+        # Handle other potential errors
+        print(f"An unexpected error occurred: {e}")
+        return None

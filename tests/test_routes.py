@@ -38,15 +38,20 @@ def setup_and_teardown():
     Base.metadata.create_all(bind=engine)
     yield
     # Teardown: drop tables and remove test db
+    engine.dispose()
+    TestingSessionLocal.close_all()
     Base.metadata.drop_all(bind=engine)
     if os.path.exists("./test_polls.db"):
         os.remove("./test_polls.db")
 
 
-client = TestClient(app)
+@pytest.fixture(scope="module")
+def client():
+    with TestClient(app) as c:
+        yield c
 
 
-def test_register():
+def test_register(client):
     response = client.post(
         "/register", json={"username": "testuser", "password": "testpass"}
     )
@@ -56,7 +61,7 @@ def test_register():
     assert "id" in data
 
 
-def test_login():
+def test_login(client):
     response = client.post(
         "/login", data={"username": "testuser", "password": "testpass"}
     )
@@ -68,13 +73,13 @@ def test_login():
     token = data["access_token"]
 
 
-def test_get_polls_empty():
+def test_get_polls_empty(client):
     response = client.get("/polls")
     assert response.status_code == 200
     assert response.json() == []
 
 
-def test_create_poll():
+def test_create_poll(client):
     headers = {"Authorization": f"Bearer {token}"}
     response = client.post(
         "/polls", 
@@ -98,7 +103,7 @@ def test_create_poll():
     option_id = data["options"][0]["id"]
 
 
-def test_get_polls_with_data():
+def test_get_polls_with_data(client):
     response = client.get("/polls")
     assert response.status_code == 200
     data = response.json()
@@ -107,7 +112,7 @@ def test_get_polls_with_data():
     assert len(data[0]["options"]) == 2
 
 
-def test_vote_on_poll():
+def test_vote_on_poll(client):
     headers = {"Authorization": f"Bearer {token}"}
     response = client.post(
         f"/polls/{poll_id}/vote",
@@ -120,7 +125,7 @@ def test_vote_on_poll():
     assert data["user_id"] > 0
 
 
-def test_get_poll_results():
+def test_get_poll_results(client):
     response = client.get(f"/polls/{poll_id}/results")
     assert response.status_code == 200
     data = response.json()
@@ -132,13 +137,13 @@ def test_get_poll_results():
     assert data["results"][0]["vote_count"] == 1
 
 
-def test_delete_poll():
+def test_delete_poll(client):
     headers = {"Authorization": f"Bearer {token}"}
     response = client.delete(f"/polls/{poll_id}", headers=headers)
     assert response.status_code == 204
 
 
-def test_get_polls_after_delete():
+def test_get_polls_after_delete(client):
     response = client.get("/polls")
     assert response.status_code == 200
     assert response.json() == []

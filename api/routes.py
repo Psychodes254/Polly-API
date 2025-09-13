@@ -1,3 +1,4 @@
+import requests
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
@@ -8,6 +9,10 @@ from datetime import timedelta
 from sqlalchemy import func
 
 router = APIRouter()
+
+@router.get("/")
+def read_root():
+    return {"message": "Welcome to the Polly API"}
 
 
 @router.post("/register", response_model=schemas.UserOut)
@@ -161,3 +166,22 @@ def delete_poll(
     db.delete(poll)
     db.commit()
     return None
+
+def fetch_paginated_polls(skip: int = 0, limit: int = 10):
+    """
+    Fetches paginated poll data from the /polls endpoint.
+    """
+    url = f"http://localhost:8000/polls?skip={skip}&limit={limit}"
+    
+    try:
+        response = requests.get(url)
+        response.raise_for_status()  # Raise an exception for bad status codes
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        # Handle connection errors, timeouts, etc.
+        print(f"An error occurred: {e}")
+        return None
+    except Exception as e:
+        # Handle other potential errors
+        print(f"An unexpected error occurred: {e}")
+        return None

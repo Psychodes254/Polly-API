@@ -3,5 +3,9 @@ uvicorn
 sqlalchemy
 pydantic
 passlib[bcrypt]
-jwt
-python-dotenv 
+python-jose
+python-dotenv
+requests
+pytest
+httpx
+python-multipart 
